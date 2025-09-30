@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Reminder Card / Kad Peringatan Pintar</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --card: #ffffff;
+      --text: #000;
+      --accent: #4B0082;
+    }
+    body.dark {
+      --bg: #1e1e1e;
+      --card: #2c2c2c;
+      --text: #eee;
+      --accent: #ffd700;
+    }
+    body.pastel {
+      --bg: #fff7fa;
+      --card: #ffe2ec;
+      --text: #6b3164;
+      --accent: #c71585;
+    }
+    body {
+      font-family: Calibri, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 40px 20px;
+      text-align: center;
+      transition: background 0.4s, color 0.4s;
+      margin: 0;
+    }
+    main {
+      max-width: 600px;
+      margin: auto;
+      background: var(--card);
+      padding: 35px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      transition: transform 0.6s ease, background 0.4s, color 0.4s;
+      animation: floatIn 1s ease-out;
+    }
+    h1 {
+      font-family: 'Ink Free', cursive;
+      color: var(--accent);
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+    label {
+      font-size: 1.1em;
+      display: block;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    textarea, input[type="date"] {
+      width: 100%;
+      font-size: 1em;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      resize: none;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.15);
+      transition: transform 0.2s;
+    }
+    textarea:focus, input:focus {
+      transform: scale(1.02);
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    button {
+      padding: 10px 24px;
+      font-size: 1em;
+      margin: 10px 8px 0;
+      border: none;
+      border-radius: 8px;
+      background-color: gold;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    button:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.35);
+    }
+    #qrcode {
+      margin: 30px auto 0;
+      width: fit-content;
+    }
+    #qrcode canvas {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    .theme-buttons {
+      margin-top: 20px;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      color: #888;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes floatIn {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    /* Language toggle top right */
+    .lang-switch {
+      position: absolute;
+      top: 45px;
+      right: 20px;
+    }
+    .lang-switch button {
+      border: none;
+      background: #007bff;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+    .lang-switch button:hover {
+      background: #0056b3;
+    }
+    body {
+    background: url("latar.png") no-repeat center center fixed;
+    background-size: cover;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Language Switch (Top Right) -->
+  <div class="lang-switch">
+    <button id="langToggle" onclick="toggleLanguage()">→ Malay</button>
+  </div>
+
+  <main>
+    <h1 id="title">📌 Smart Reminder Card</h1>
+
+    <label for="reminderText" id="reminderLabel">Reminder:</label>
+    <textarea id="reminderText" placeholder="Type or paste your reminder here..."></textarea>
+
+    <label for="dueDate" id="dateLabel">Due Date:</label>
+    <input type="date" id="dueDate" />
+
+    <button id="voiceInputBtn">🎤 Speak</button>
+    <button id="readBtn" onclick="readAloud()">🔊 Read Aloud</button>
+    <button id="qrBtn" onclick="generateQR()">📷 Generate QR</button>
+    <button id="dlBtn" onclick="downloadQR()">📥 Download QR</button>
+
+    <div id="output" aria-live="polite" style="margin-top:10px;"></div>
+    <div id="qrcode" aria-label="QR code area"></div>
+
+    <div class="theme-buttons">
+      <p id="themeText">🎨 Theme:</p>
+      <button id="lightBtn" onclick="setTheme('light')">Light</button>
+      <button id="darkBtn" onclick="setTheme('dark')">Dark</button>
+      <button id="pastelBtn" onclick="setTheme('pastel')">Pastel</button>
+    </div>
+  </main>
+
+  <footer id="footerText">Crafted with ❤️ by Koleksi 77</footer>
+
+ <script>
+  let currentLang = "en"; // default English
+
+  const langData = {
+    en: {
+      title: "📌 Smart Reminder Card",
+      reminder: "Reminder:",
+      placeholder: "Type or paste your reminder here...",
+      due: "Due Date:",
+      theme: "🎨 Theme:",
+      speakBtn: "🎤 Speak",
+      readBtn: "🔊 Read Aloud",
+      qrBtn: "📷 Generate QR",
+      dlBtn: "📥 Download QR",
+      light: "Light",
+      dark: "Dark",
+      pastel: "Pastel",
+      listening: "I'm listening...",
+      youSaid: "You said:",
+      gotIt: "Got it!",
+      enterReminder: "Please enter your reminder.",
+      switchBtn: "→ Malay",
+      footer: "Crafted with ❤️ by Koleksi 77",
+      qrAlert: "Please generate a QR code first.",
+      errorSpeech: "Oops, I didn't catch that."
+    },
+    ms: {
+      title: "📌 Kad Peringatan Pintar",
+      reminder: "Peringatan:",
+      placeholder: "Taip atau tampal peringatan anda di sini...",
+      due: "Tarikh Akhir:",
+      theme: "🎨 Tema:",
+      speakBtn: "🎤 Bercakap",
+      readBtn: "🔊 Bacakan",
+      qrBtn: "📷 Jana QR",
+      dlBtn: "📥 Muat Turun QR",
+      light: "Cerah",
+      dark: "Gelap",
+      pastel: "Pastel",
+      listening: "Saya sedang mendengar...",
+      youSaid: "Anda sebut:",
+      gotIt: "Baiklah!",
+      enterReminder: "Sila masukkan peringatan anda.",
+      switchBtn: "→ English",
+      footer: "Dihasilkan dengan ❤️ oleh Koleksi 77",
+      qrAlert: "Sila jana kod QR dahulu.",
+      errorSpeech: "Maaf, saya tak dapat dengar dengan jelas."
+    }
+  };
+
+  function updateUI() {
+    const t = langData[currentLang];
+    document.getElementById("title").textContent = t.title;
+    document.getElementById("reminderLabel").textContent = t.reminder;
+    reminderText.placeholder = t.placeholder;
+    document.getElementById("dateLabel").textContent = t.due;
+    document.getElementById("themeText").textContent = t.theme;
+    document.getElementById("langToggle").textContent = t.switchBtn;
+
+    // translate buttons
+    voiceInputBtn.textContent = t.speakBtn;
+    readBtn.textContent = t.readBtn;
+    qrBtn.textContent = t.qrBtn;
+    dlBtn.textContent = t.dlBtn;
+    lightBtn.textContent = t.light;
+    darkBtn.textContent = t.dark;
+    pastelBtn.textContent = t.pastel;
+
+    // translate footer
+    footerText.textContent = t.footer;
+  }
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    updateUI();
+  }
+
+  function toggleLanguage() {
+    setLanguage(currentLang === "en" ? "ms" : "en");
+  }
+
+  function getFullMessage() {
+    const text = reminderText.value.trim();
+    const date = dueDate.value;
+    if (!text) return "";
+    return currentLang === "en"
+      ? `Reminder: ${text}${date ? " | Due: " + date : ""}`
+      : `Peringatan: ${text}${date ? " | Tarikh Akhir: " + date : ""}`;
+  }
+
+  function readAloud() {
+    const message = getFullMessage();
+    if (!message) return alert(langData[currentLang].enterReminder);
+    speak(message);
+  }
+
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = currentLang === "en" ? "en-US" : "ms-MY";
+    speechSynthesis.speak(utterance);
+  }
+
+  function generateQR() {
+    const message = getFullMessage();
+    if (!message) return alert(langData[currentLang].enterReminder);
+    const qr = document.getElementById("qrcode");
+    qr.innerHTML = "";
+    new QRCode(qr, {
+      text: message,
+      width: 160,
+      height: 160,
+      colorDark: "#000",
+      colorLight: "#fff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+
+  function downloadQR() {
+    const canvas = document.querySelector("#qrcode canvas");
+    if (!canvas) return alert(langData[currentLang].qrAlert);
+    const link = document.createElement("a");
+    link.download = "reminder-qr.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  function setTheme(theme) {
+    document.body.className = theme === "light" ? "" : theme;
+  }
+
+  // Voice recognition
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+
+  voiceInputBtn.addEventListener("click", () => {
+    speak(langData[currentLang].listening);
+    recognition.lang = currentLang === "en" ? "en-US" : "ms-MY";
+    recognition.start();
+  });
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    reminderText.value += transcript + " ";
+    output.textContent = `${langData[currentLang].youSaid} ${transcript}`;
+    localStorage.setItem("lastVoiceInput", transcript);
+    speak(`${langData[currentLang].gotIt} ${transcript}`);
+  };
+
+  recognition.onerror = (e) => {
+    console.error("Speech recognition error:", e.error);
+    speak(langData[currentLang].errorSpeech);
+  };
+
+  // LocalStorage restore
+  window.onload = () => {
+    reminderText.value = localStorage.getItem("reminderText") || "";
+    dueDate.value = localStorage.getItem("reminderDate") || "";
+    updateUI();
+  };
+
+  reminderText.addEventListener("input", () =>
+    localStorage.setItem("reminderText", reminderText.value)
+  );
+  dueDate.addEventListener("input", () =>
+    localStorage.setItem("reminderDate", dueDate.value)
+  );
+
+  // Service Worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
+</script>
+
+<!-- Tambah QRCode library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+</body>
+</html>
